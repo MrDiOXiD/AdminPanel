@@ -16,7 +16,7 @@ export default function EditCategory({ category }) {
     if (state?.status === "success") {
       router.push("/categories");
     }
-  }, [state]);
+  }, [state, router]);
 
   return (
     <form action={formAction} className="row gy-4">

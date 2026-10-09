@@ -14,9 +14,10 @@ import gregorian from "react-date-object/calendars/gregorian";
 import gregorian_en from "react-date-object/locales/gregorian_en";
 import TimePicker from "react-multi-date-picker/plugins/time_picker";
 import DatePanel from "react-multi-date-picker/plugins/date_panel";
+import Image from "next/image";
 
 export default function CreateProduct({ categories }) {
-  
+
   const [state, formAction] = useActionState(createProduct, {});
   const router = useRouter();
   const [image, setImage] = useState(null);
@@ -24,20 +25,28 @@ export default function CreateProduct({ categories }) {
   const [dateOnSale, setDateOnSale] = useState([]);
 
   useEffect(() => {
-    toast(state?.message, { type: `${state?.status}` });
+    if (state?.message) {
+      toast(state.message, { type: state.status });
+    }
+
     if (state?.status === "success") {
       router.push("/products");
     }
-  }, [state]);
+  }, [state, router]);
+
 
   function setPrimaryImage(e) {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
+
+    if (!file) return;
 
     const render = new FileReader();
     render.readAsDataURL(file);
 
     render.onloadend = () => {
-      setImage(render.result.toString());
+      if (typeof render.result === "string") {
+        setImage(render.result);
+      }
     };
   }
 
@@ -57,8 +66,17 @@ export default function CreateProduct({ categories }) {
           <div className="col-md-4">
             <label className="form-label">تصویر اصلی</label>
 
+
             <div className={image ? "position-relative" : "d-none"}>
-              <img className="rounded" src={image} width={350} height={220} alt="image" />
+              <Image
+                className="rounded"
+                src={image}
+                width={350}
+                height={220}
+                alt="Product image"
+                unoptimized
+              />
+
               <div
                 className="position-absolute"
                 onClick={() => {
@@ -70,6 +88,7 @@ export default function CreateProduct({ categories }) {
                 <i className="bi bi-x text-danger fs-2 cursor-pointer"></i>
               </div>
             </div>
+
 
             <input
               onChange={setPrimaryImage}
@@ -128,7 +147,7 @@ export default function CreateProduct({ categories }) {
         <label className="form-label">قیمت حراجی</label>
         <input name="sale_price" type="text" className="form-control" />
       </div>
-<div>
+      <div>
         <ProductExtraAttributes />
       </div>
       <div className="col-md-3">
@@ -140,8 +159,10 @@ export default function CreateProduct({ categories }) {
           locale={persian_fa}
           onChange={changeDateOnSale}
           format="YYYY-MM-DD HH:mm:ss"
-          plugins={[<TimePicker position="bottom" />, <DatePanel markFocused />]}
-        />
+          plugins={[
+            <TimePicker key="time-picker" position="bottom" />,
+            <DatePanel key="date-panel" markFocused />,
+          ]} />
         {/* Line 142 */}
         <input
           name="date_on_sale_from"
@@ -165,7 +186,7 @@ export default function CreateProduct({ categories }) {
       <div>
         <SubmitButton title="ایجاد محصول" style="btn btn-outline-dark mt-3 mb-5" />
       </div>
-      
+
     </form>
   );
 }

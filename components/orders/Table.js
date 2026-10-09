@@ -1,10 +1,11 @@
 import { getFetch } from "@/utils/fetch";
-import Link from "next/link";
+// import Link from "next/link";
 import Paginate from "../Paginate";
 import { getBlurDataURL, numberFormat } from "@/utils/helper";
 import Image from "next/image";
 
-export default async function Table({ params }) {
+// export default async function Table({ params }) {
+export default async function Table() {
   const data = await getFetch(`/orders`);
 
   return (

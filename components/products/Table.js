@@ -1,8 +1,8 @@
 import { getFetch } from "@/utils/fetch";
 import Link from "next/link";
-import Paginate from "../Paginate";
+// import Paginate from "../Paginate";
 import Image from "next/image";
-import { getBlurDataURL, numberFormat } from "@/utils/helper";
+import { numberFormat } from "@/utils/helper";
 
 export default async function Table({ params }) {
   const data = await getFetch(`/products?${params}`);

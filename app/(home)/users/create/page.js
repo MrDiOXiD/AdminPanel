@@ -16,7 +16,7 @@ export default function CreateUserPage() {
     if (state?.status === "success") {
       router.push("/users");
     }
-  }, [state]);
+  }, [state, router]);
 
   return (
     <>

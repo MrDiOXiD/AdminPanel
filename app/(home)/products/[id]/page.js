@@ -7,7 +7,6 @@ export default async function ProductPage({ params }) {
       const { id } = await params;
 
   const product = await getFetch(`/products/${id}`);
-  console.log(product);
   
 
   return (

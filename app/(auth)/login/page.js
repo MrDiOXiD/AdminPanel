@@ -16,7 +16,7 @@ export default function LoginPage() {
     if (state?.loggedIn === true) {
       router.push("/");
     }
-  }, [state]);
+  }, [state, router]);
 
   return (
     <div className="row mt-5 justify-content-center align-items-center">

@@ -5,7 +5,7 @@ import SubmitButton from "../SubmitButton";
 import { useFormState } from "react-dom";
 
 export default function DeleteCoupon({ id }) {
-  const [state, formAction] = useFormState(deleteCoupon, {});
+  const [ formAction] = useFormState(deleteCoupon, {});
 
   return (
     <form action={formAction}>

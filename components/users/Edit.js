@@ -16,7 +16,7 @@ export default function EditUser({ user }) {
     if (state?.status === "success") {
       router.push("/users");
     }
-  }, [state]);
+  }, [state , router]);
 
   return (
     <form action={formAction} className="row gy-4">

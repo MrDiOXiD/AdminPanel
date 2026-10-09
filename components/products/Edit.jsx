@@ -23,6 +23,7 @@ export default function EditProduct({ product, categories }) {
   const primaryImageRef = useRef();
   const [dateOnSale, setDateOnSale] = useState([]);
 
+
   useEffect(() => {
     if (product.is_sale) {
       setDateOnSale([
@@ -36,12 +37,24 @@ export default function EditProduct({ product, categories }) {
         },
       ]);
     }
+  }, [
+    product.is_sale,
+    product.date_on_sale_from,
+    product.date_on_sale_from_gregorian,
+    product.date_on_sale_to,
+    product.date_on_sale_to_gregorian,
+  ]);
 
-    toast(state?.message, { type: `${state?.status}` });
+  useEffect(() => {
+    if (state?.message) {
+      toast(state.message, { type: state.status });
+    }
+
     if (state?.status === "success") {
       router.push("/products");
     }
-  }, [state]);
+  }, [state, router]);
+
 
   function setPrimaryImage(e) {
     const file = e.target.files[0];
@@ -92,15 +105,16 @@ export default function EditProduct({ product, categories }) {
 
             <div className={image === null ? "" : "d-none"}>
               {product.primary_image ? (
+
                 <Image
-                  className="rounded mb-4"
-                  src={product.primary_image}
-                  placeholder="blur"
-                  blurDataURL={getBlurDataURL()}
+                  className="rounded"
+                  src={image}
                   width={350}
                   height={220}
                   alt={product.name || "Product image"}
+                  unoptimized
                 />
+
               ) : null}
               <input
                 onChange={setPrimaryImage}
@@ -178,18 +192,25 @@ export default function EditProduct({ product, categories }) {
           locale={persian_fa}
           onChange={changeDateOnSale}
           format="YYYY-MM-DD HH:mm:ss"
-          plugins={[<TimePicker position="bottom" />, <DatePanel markFocused />]}
+
+          plugins={[
+            <TimePicker key="time-picker" position="bottom" />,
+            <DatePanel key="date-panel" markFocused />,
+          ]}
         />
 
         <input
           name="date_on_sale_from"
-          value={dateOnSale.length > 0 && dateOnSale[0].gregorian}
+          value={dateOnSale[0]?.gregorian ?? ""}
           type="hidden"
+          readOnly
         />
+
         <input
           name="date_on_sale_to"
-          value={dateOnSale.length > 0 && dateOnSale[1].gregorian}
+          value={dateOnSale[1]?.gregorian ?? ""}
           type="hidden"
+          readOnly
         />
       </div>
 

@@ -5,7 +5,7 @@ import { useFormState } from "react-dom";
 import { deleteCategory } from "@/actions/categories";
 
 export default function DeleteCategory({ id }) {
-  const [state, formAction] = useFormState(deleteCategory, {});
+  const [ formAction] = useFormState(deleteCategory, {});
 
   return (
     <form action={formAction}>

@@ -5,7 +5,7 @@ import SubmitButton from "../SubmitButton";
 import { useActionState } from "react";
 
 export default function DeleteUser({ id }) {
-  const [state, formAction] = useActionState(deleteUser, {});
+  const [ formAction] = useActionState(deleteUser, {});
 
   return (
     <form action={formAction}>
