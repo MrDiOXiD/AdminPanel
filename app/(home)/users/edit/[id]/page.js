@@ -4,7 +4,6 @@ import { getFetch } from "@/utils/fetch";
 export default async function EditUserPage({ params }) {
   const { id } = await params;
   const user = await getFetch(`/user/${id}`);
-console.log(user);
 
   return (
     <>

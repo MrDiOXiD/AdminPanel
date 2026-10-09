@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+// import { toast } from "react-toastify";
 import { useFormState } from "react-dom";
 import SubmitButton from "@/components/SubmitButton";
 import { useRouter } from "next/navigation";
@@ -15,7 +15,7 @@ import gregorian_en from "react-date-object/locales/gregorian_en";
 
 export default function CreateCouponPage() {
   const [state, formAction] = useFormState(createCoupon, {});
-  const router = useRouter();
+  // const router = useRouter();
   const [dateExpire, setDateExpire] = useState("");
 
   // useEffect(() => {

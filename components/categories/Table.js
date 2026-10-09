@@ -1,10 +1,9 @@
 import { getFetch } from "@/utils/fetch";
 import Link from "next/link";
-import Paginate from "../Paginate";
+// import Paginate from "../Paginate";
 
 export default async function Table({ params }) {
   const data = await getFetch(`/categories?${params}`);
-console.(data);
 
   return (
     <>

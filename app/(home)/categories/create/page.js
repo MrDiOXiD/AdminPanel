@@ -3,7 +3,7 @@
 import { useActionState, useEffect } from "react";
 // import { toast } from "react-toastify";
 import SubmitButton from "@/components/SubmitButton";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { createCategory } from "@/actions/categories";
 
 export default function CreateCategoryPage() {
