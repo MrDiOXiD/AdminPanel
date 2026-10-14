@@ -6,6 +6,7 @@ import SubmitButton from "@/components/SubmitButton";
 import { useRouter } from "next/navigation";
 import { createProduct } from "@/actions/products";
 import ProductExtraAttributes from "./ProductExtraAttributes";
+import BadgeSelector from "@/components/badges/BadgeSelector";
 
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
@@ -16,7 +17,7 @@ import TimePicker from "react-multi-date-picker/plugins/time_picker";
 import DatePanel from "react-multi-date-picker/plugins/date_panel";
 import Image from "next/image";
 
-export default function CreateProduct({ categories }) {
+export default function CreateProduct({ categories, badges = [] }) {
 
   const [state, formAction] = useActionState(createProduct, {});
   const router = useRouter();
@@ -67,7 +68,9 @@ export default function CreateProduct({ categories }) {
             <label className="form-label">تصویر اصلی</label>
 
 
-            <div className={image ? "position-relative" : "d-none"}>
+            {/* Render only when a preview exists: an empty src makes the browser re-fetch the page */}
+            {image && (
+            <div className="position-relative">
               <Image
                 className="rounded"
                 src={image}
@@ -88,6 +91,7 @@ export default function CreateProduct({ categories }) {
                 <i className="bi bi-x text-danger fs-2 cursor-pointer"></i>
               </div>
             </div>
+            )}
 
 
             <input
@@ -149,6 +153,11 @@ export default function CreateProduct({ categories }) {
       </div>
       <div>
         <ProductExtraAttributes />
+      </div>
+
+      <div className="col-md-12">
+        <label className="form-label">نشان‌ها (حداکثر ۱۰)</label>
+        <BadgeSelector badges={badges} />
       </div>
       <div className="col-md-3">
         <label className="form-label">تاریخ شروع و پایان حراجی</label>

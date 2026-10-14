@@ -40,7 +40,7 @@ export default async function Table({ params }) {
                 <td>{product.categoryId}</td>
                 <td>{numberFormat(product.price)}</td>
                 <td>{product.stock}</td>
-                <td>{product.isActive}</td>
+                <td>{product.isActive ? "فعال" : "غیرفعال"}</td>
                 <td>
                   <div className="d-flex">
                     <Link

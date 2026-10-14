@@ -1,101 +1,110 @@
+import Link from "next/link";
 import { getFetch } from "@/utils/fetch";
-// import Link from "next/link";
+import { handleError, numberFormat } from "@/utils/helper";
+import {
+  PAYMENT_METHOD,
+  countByStatus,
+  customerName,
+  filterOrders,
+  formatDate,
+  itemsCount,
+} from "@/utils/order";
+import { paginateList } from "@/utils/paginate";
 import Paginate from "../Paginate";
-import { getBlurDataURL, numberFormat } from "@/utils/helper";
-import Image from "next/image";
+import { OrderStatusBadge, PaymentBadge } from "./OrderBadges";
+import StatusChips from "./StatusChips";
 
-// export default async function Table({ params }) {
-export default async function Table() {
-  const data = await getFetch(`/orders`);
+const PER_PAGE = 15;
+
+export default async function Table({ params }) {
+  const query = new URLSearchParams(params);
+  const data = await getFetch("/orders");
+
+  // 401 / 403 / 500 arrive as an object, not an array
+  if (!Array.isArray(data)) {
+    return (
+      <div className="alert alert-danger">
+        دریافت سفارشات با خطا مواجه شد{data?.message ? `: ${handleError(data.message)}` : ""}
+      </div>
+    );
+  }
+
+  const status = query.get("status") ?? "";
+  const payment = query.get("payment") ?? "";
+  const q = query.get("q") ?? "";
+
+  const newestFirst = [...data].sort((a, b) => new Date(b.orderAt) - new Date(a.orderAt));
+  const filtered = filterOrders(newestFirst, { status, payment, q });
+  const { items, links } = paginateList(filtered, query.get("page"), PER_PAGE);
+  const counts = countByStatus(data);
 
   return (
     <>
+      <StatusChips counts={counts} total={data.length} status={status} query={query} />
+
       <div className="table-responsive">
         <table className="table align-middle">
           <thead>
             <tr>
-              <th>شماره سفارش</th>
+              <th>شماره</th>
+              <th>مشتری</th>
               <th>وضعیت</th>
-              <th>وضعیت پرداخت</th>
-              <th>مبلغ پرداختی</th>
-              <th>تاریخ ایجاد</th>
-              <th>محصولات</th>
+              <th>پرداخت</th>
+              <th>مبلغ کل</th>
+              <th>تاریخ ثبت</th>
+              <th>تحویل درخواستی</th>
+              <th>اقلام</th>
+              <th>عملیات</th>
             </tr>
           </thead>
           <tbody>
-            {data?.map((order) => (
-              <tr key={order.id}>
-                <td>{order.id}</td>
-                <td>{order.status}</td>
-                <td>{order.payment_status}</td>
-                <td>{numberFormat(order.paying_amount)} تومان</td>
-                <td>{order.created_at}</td>
-                <td>
-                  <button
-                    type="button"
-                    data-bs-target={`#modal-${order.id}`}
-                    className="btn btn-sm btn-dark"
-                    data-bs-toggle="modal"
-                  >
-                    نمایش
-                  </button>
-
-                  <div className="modal fade" id={`modal-${order.id}`}>
-                    <div className="modal-dialog modal-lg">
-                      <div className="modal-content">
-                        <div className="modal-header">
-                          <h6 className="modal-title">محصولات سفارش شماره {order.id}</h6>
-                          <button
-                            type="button"
-                            className="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Close"
-                          ></button>
-                        </div>
-                        <div className="modal-body">
-                          <table className="table align-middle">
-                            <thead>
-                              <tr>
-                                <th>محصول</th>
-                                <th>نام</th>
-                                <th>قیمت</th>
-                                <th>تعداد</th>
-                                <th>قیمت کل</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {order?.map((item) => (
-                                <tr key={item.id}>
-                                  <th>
-                                    <Image
-                                      src={item.product_primary_image}
-                                      placeholder="blur"
-                                      blurDataURL={getBlurDataURL()}
-                                      width={80}
-                                      height={53}
-                                      alt="image-product"
-                                    />
-                                  </th>
-                                  <td className="fw-bold">{item.product_name}</td>
-                                  <td>{numberFormat(item.price)} تومان</td>
-                                  <td>{item.quantity}</td>
-                                  <td>{numberFormat(item.subtotal)} تومان</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="text-center text-muted py-5">
+                  سفارشی یافت نشد
                 </td>
               </tr>
-            ))}
+            ) : (
+              items.map((order) => (
+                <tr key={order.id}>
+                  <td className="fw-bold">#{order.id}</td>
+                  <td>
+                    <div>{customerName(order.user)}</div>
+                    <div className="small text-muted" dir="ltr">
+                      {order.user?.phoneNumber}
+                    </div>
+                  </td>
+                  <td>
+                    <OrderStatusBadge status={order.status} />
+                  </td>
+                  <td>
+                    <PaymentBadge order={order} />
+                    <div className="small text-muted mt-1">{PAYMENT_METHOD[order.paymentMethod] ?? order.paymentMethod}</div>
+                  </td>
+                  <td>
+                    <div>{numberFormat(order.total_price)} تومان</div>
+                    {Number(order.deliveryFee) > 0 ? (
+                      <div className="small text-muted">شامل ارسال: {numberFormat(order.deliveryFee)}</div>
+                    ) : null}
+                  </td>
+                  <td>{formatDate(order.orderAt, { withTime: true })}</td>
+                  <td>{formatDate(order.requestedDeliveryDate)}</td>
+                  <td>{itemsCount(order)}</td>
+                  <td>
+                    <Link href={`/orders/${order.id}`} className="btn btn-sm btn-dark">
+                      جزئیات
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      <Paginate links={data?.meta.links} />
+      <div className="text-muted small">{filtered.length} سفارش</div>
+
+      {links.length > 0 ? <Paginate links={links} /> : null}
     </>
   );
 }

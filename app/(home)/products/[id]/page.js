@@ -2,17 +2,24 @@ import DeleteProduct from "@/components/products/Delete";
 import { getFetch } from "@/utils/fetch";
 import { getBlurDataURL, numberFormat } from "@/utils/helper";
 import Image from "next/image";
+import ProductBadgesForm from "@/components/products/ProductBadgesForm";
 
 export default async function ProductPage({ params }) {
       const { id } = await params;
 
   const product = await getFetch(`/products/${id}`);
+
+  let badges = [];
+  try {
+    const list = await getFetch("/badges");
+    if (Array.isArray(list)) badges = list;
+  } catch {}
   
 
   return (
     <>
       <div className="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h4 className="fw-bold">محصول : {product.name}</h4>
+        <h4 className="fw-bold">محصول : {product.title}</h4>
       </div>
 
       <div className="row gy-4">
@@ -101,6 +108,8 @@ export default async function ProductPage({ params }) {
             defaultValue={product.description}
           ></textarea>
         </div>
+
+        <ProductBadgesForm productId={product.id} badges={badges} selected={product.badges ?? []} />
 
         <div className="col-md-12">
           {product.gallery > 0

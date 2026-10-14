@@ -1,149 +1,75 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import SubmitButton from "@/components/SubmitButton";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import SubmitButton from "@/components/SubmitButton";
+import BadgeSelector from "@/components/badges/BadgeSelector";
+import ProductExtraAttributes from "./ProductExtraAttributes";
 import { editProduct } from "@/actions/products";
 
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import gregorian from "react-date-object/calendars/gregorian";
-import gregorian_en from "react-date-object/locales/gregorian_en";
 import TimePicker from "react-multi-date-picker/plugins/time_picker";
 import DatePanel from "react-multi-date-picker/plugins/date_panel";
-import Image from "next/image";
-import { getBlurDataURL } from "@/utils/helper";
 
-export default function EditProduct({ product, categories }) {
+// Date | DateObject -> ISO string (what the API stores); anything else -> ""
+const toISO = (value) => {
+  if (!value) return "";
+  const date = value instanceof Date ? value : value.toDate?.();
+  return date ? date.toISOString() : "";
+};
+
+// Percent discount -> the sale price shown in the form
+const toSalePrice = (price, discount) =>
+  Number(discount) > 0 ? String(Number((Number(price) * (1 - Number(discount) / 100)).toFixed(2))) : "";
+
+export default function EditProduct({ product, categories = [], badges = [] }) {
   const [state, formAction] = useActionState(editProduct, {});
   const router = useRouter();
-  const [image, setImage] = useState(null);
-  const primaryImageRef = useRef();
-  const [dateOnSale, setDateOnSale] = useState([]);
 
-
-  useEffect(() => {
-    if (product.is_sale) {
-      setDateOnSale([
-        {
-          persian: product.date_on_sale_from,
-          gregorian: product.date_on_sale_from_gregorian,
-        },
-        {
-          persian: product.date_on_sale_to,
-          gregorian: product.date_on_sale_to_gregorian,
-        },
-      ]);
-    }
-  }, [
-    product.is_sale,
-    product.date_on_sale_from,
-    product.date_on_sale_from_gregorian,
-    product.date_on_sale_to,
-    product.date_on_sale_to_gregorian,
-  ]);
+  const [range, setRange] = useState(
+    product.discountStartDate && product.discountEndDate
+      ? [new Date(product.discountStartDate), new Date(product.discountEndDate)]
+      : [],
+  );
+  const hasFullRange = range.length === 2;
 
   useEffect(() => {
-    if (state?.message) {
-      toast(state.message, { type: state.status });
-    }
-
-    if (state?.status === "success") {
-      router.push("/products");
-    }
+    if (state?.message) toast(state.message, { type: state.status });
+    if (state?.status === "success") router.push("/products");
   }, [state, router]);
-
-
-  function setPrimaryImage(e) {
-    const file = e.target.files[0];
-
-    const render = new FileReader();
-    render.readAsDataURL(file);
-
-    render.onloadend = () => {
-      setImage(render.result.toString());
-    };
-  }
-
-  function changeDateOnSale(value) {
-    if (value.length == 2) {
-      setDateOnSale([
-        {
-          persian: value[0],
-          gregorian: value[0].convert(gregorian, gregorian_en).format("YYYY-MM-DD HH:mm:ss"),
-        },
-        {
-          persian: value[1],
-          gregorian: value[1].convert(gregorian, gregorian_en).format("YYYY-MM-DD HH:mm:ss"),
-        },
-      ]);
-    }
-  }
 
   return (
     <form action={formAction} className="row gy-4">
-      <div className="col-md-12 mb-5">
+      <div className="col-md-12 mb-3">
         <div className="row justify-content-center">
           <div className="col-md-4">
             <label className="form-label">تصویر اصلی</label>
-
-            <div className={image ? "position-relative" : "d-none"}>
-              <img className="rounded" src={product.primary_image} width={350} height={220} alt="image" />
-              <div
-                className="position-absolute"
-                onClick={() => {
-                  primaryImageRef.current.value = "";
-                  setImage(null);
-                }}
-                style={{ top: "5px", right: "15px" }}
-              >
-                <i className="bi bi-x text-danger fs-2 cursor-pointer"></i>
-              </div>
-            </div>
-
-            <div className={image === null ? "" : "d-none"}>
-              {product.primary_image ? (
-
-                <Image
-                  className="rounded"
-                  src={image}
-                  width={350}
-                  height={220}
-                  alt={product.name || "Product image"}
-                  unoptimized
-                />
-
-              ) : null}
-              <input
-                onChange={setPrimaryImage}
-                name="primary_image"
-                type="file"
-                ref={primaryImageRef}
-                className="form-control"
-              />
-            </div>
+            {product.productImage ? (
+              <Image className="rounded" src={product.productImage} width={350} height={220} alt={product.title} />
+            ) : null}
+            <div className="form-text">ویرایش تصاویر هنوز توسط API پشتیبانی نمی‌شود.</div>
           </div>
         </div>
       </div>
 
       <div className="col-md-3">
-        <label className="form-label">تصاویر</label>
-        <input multiple name="images[]" type="file" className="form-control" />
-      </div>
-
-      <div className="col-md-3">
         <label className="form-label">نام</label>
-        <input name="name" defaultValue={product.name} type="text" className="form-control" />
+        <input name="name" defaultValue={product.title} type="text" className="form-control" />
       </div>
 
       <div className="col-md-3">
         <label className="form-label">دسته بندی</label>
-        <select name="category_id" defaultValue={product.category_id} className="form-select">
+        <select name="category_id" defaultValue={product.categoryId ?? ""} className="form-select">
+          <option value="" disabled>
+            انتخاب دسته بندی
+          </option>
           {categories.map((item) => (
             <option key={item.id} value={item.id}>
-              {item.name}
+              {item.title}
             </option>
           ))}
         </select>
@@ -151,7 +77,7 @@ export default function EditProduct({ product, categories }) {
 
       <div className="col-md-3">
         <label className="form-label">وضعیت</label>
-        <select name="status" defaultValue={product.status_value} className="form-select">
+        <select name="status" defaultValue={product.isActive ? "1" : "0"} className="form-select">
           <option value="1">فعال</option>
           <option value="0">غیر فعال</option>
         </select>
@@ -164,19 +90,14 @@ export default function EditProduct({ product, categories }) {
 
       <div className="col-md-3">
         <label className="form-label">تعداد</label>
-        <input
-          name="quantity"
-          defaultValue={product.quantity}
-          type="text"
-          className="form-control"
-        />
+        <input name="quantity" defaultValue={product.stock} type="text" className="form-control" />
       </div>
 
       <div className="col-md-3">
         <label className="form-label">قیمت حراجی</label>
         <input
           name="sale_price"
-          defaultValue={product.sale_price}
+          defaultValue={toSalePrice(product.price, product.discount)}
           type="text"
           className="form-control"
         />
@@ -187,45 +108,36 @@ export default function EditProduct({ product, categories }) {
         <DatePicker
           inputClass="form-control"
           range
-          value={dateOnSale.map((time) => time.persian)}
+          value={range}
+          onChange={setRange}
           calendar={persian}
           locale={persian_fa}
-          onChange={changeDateOnSale}
           format="YYYY-MM-DD HH:mm:ss"
-
           plugins={[
             <TimePicker key="time-picker" position="bottom" />,
             <DatePanel key="date-panel" markFocused />,
           ]}
         />
+        {/* Empty value = clear the dates on the server */}
+        <input type="hidden" name="discount_start" value={hasFullRange ? toISO(range[0]) : ""} readOnly />
+        <input type="hidden" name="discount_end" value={hasFullRange ? toISO(range[1]) : ""} readOnly />
+      </div>
 
-        <input
-          name="date_on_sale_from"
-          value={dateOnSale[0]?.gregorian ?? ""}
-          type="hidden"
-          readOnly
-        />
+      <div>
+        <ProductExtraAttributes defaultBrand={product.brand} defaultAttributes={product.attributes} />
+      </div>
 
-        <input
-          name="date_on_sale_to"
-          value={dateOnSale[1]?.gregorian ?? ""}
-          type="hidden"
-          readOnly
-        />
+      <div className="col-md-12">
+        <label className="form-label">نشان‌ها (حداکثر ۱۰)</label>
+        <BadgeSelector badges={badges} defaultSelected={product.badges ?? []} />
       </div>
 
       <div className="col-md-12">
         <label className="form-label">توضیحات</label>
-        <textarea
-          rows="5"
-          defaultValue={product.description}
-          name="description"
-          className="form-control"
-        ></textarea>
+        <textarea rows="5" defaultValue={product.description} name="description" className="form-control"></textarea>
       </div>
 
-      <input type="hidden" name="id" defaultValue={product.id} />
-      <input type="hidden" name="_method" defaultValue="PUT" />
+      <input type="hidden" name="id" value={product.id} readOnly />
 
       <div>
         <SubmitButton title="ویرایش محصول" style="btn btn-outline-dark mt-3 mb-5" />

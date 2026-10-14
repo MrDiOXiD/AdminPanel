@@ -1,18 +1,17 @@
 import CreateProduct from "@/components/products/Create";
 import { getFetch } from "@/utils/fetch";
 
-export default async function CreateProductPage() {
-  let categories = [];
-
+async function fetchList(url) {
   try {
-    const data = await getFetch("/categories");
-
-    if (Array.isArray(data)) {
-      categories = data;
-    }
+    const data = await getFetch(url);
+    return Array.isArray(data) ? data : [];
   } catch {
-    categories = [];
+    return [];
   }
+}
+
+export default async function CreateProductPage() {
+  const [categories, badges] = await Promise.all([fetchList("/categories"), fetchList("/badges")]);
 
   return (
     <>
@@ -20,7 +19,7 @@ export default async function CreateProductPage() {
         <h4 className="fw-bold">ایجاد محصول</h4>
       </div>
 
-      <CreateProduct categories={categories} />
+      <CreateProduct categories={categories} badges={badges} />
     </>
   );
 }

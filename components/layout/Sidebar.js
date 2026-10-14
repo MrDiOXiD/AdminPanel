@@ -40,6 +40,15 @@ export default function Sidebar() {
           </li>
           <li className="nav-item">
             <Link
+              className={pathname.includes("/badges") ? "nav-link active" : "nav-link"}
+              href="/badges"
+            >
+              <i className="bi bi-tag me-2"></i>
+              نشان ها badge
+            </Link>
+          </li>
+          <li className="nav-item">
+            <Link
               className={pathname.includes("/categories") ? "nav-link active" : "nav-link"}
               href="/categories"
             >

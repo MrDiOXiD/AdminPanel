@@ -4,11 +4,10 @@ import { cookies } from "next/headers";
 import { handleError } from "@/utils/helper";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { deleteFetch } from "@/utils/fetch";
+import { deleteFetch, putFetch } from "@/utils/fetch";
 
 
 async function createProduct(state, formData) {
-  console.log("RECEIVED FROM FORM:", formData.get("brand"), formData.get("badge"));
   // 1. Create a fresh payload for the NestJS API
   const apiFormData = new FormData();
 
@@ -25,9 +24,10 @@ async function createProduct(state, formData) {
     apiFormData.append("brand", brand);
   }
 
-  const badge = formData.get("badge");
-  if (badge && badge.trim() !== "") {
-    apiFormData.append("badge", badge);
+  // BadgeSelector sends a JSON array of badge ids, e.g. "[1,3]"
+  const badges = formData.get("badges");
+  if (badges && badges !== "[]") {
+    apiFormData.append("badges", badges);
   }
 
   const attributes = formData.get("attributes");
@@ -148,85 +148,92 @@ async function deleteProduct(state, formData) {
   }
 }
 
-async function editProduct(state, formData) {
-  const id = formData.get("id");
-  const primary_image = formData.get("primary_image");
-  const images = formData.get("images[]");
-  const name = formData.get("name");
-  const category_id = formData.get("category_id");
-  const price = formData.get("price");
-  const quantity = formData.get("quantity");
+const fail = (message) => ({ status: "error", message });
 
-  if (primary_image.size == 0) {
-    formData.delete("primary_image");
-  }
-
-  if (images.size == 0) {
-    formData.delete("images[]");
-  }
-
-  if (id === "" || id === null) {
-    return {
-      status: "error",
-      message: "شناسه محصول الزامی است",
-    };
-  }
-
-  if (name === "") {
-    return {
-      status: "error",
-      message: "نام الزامی است",
-    };
-  }
-
-  if (category_id === null) {
-    return {
-      status: "error",
-      message: "دسته بندی الزامی است",
-    };
-  }
-
-  if (price === "") {
-    return {
-      status: "error",
-      message: "قیمت الزامی است",
-    };
-  }
-
-  if (quantity === "") {
-    return {
-      status: "error",
-      message: "تعداد الزامی است",
-    };
-  }
-
-const cookieStore = await cookies();
-const token = cookieStore.get("token");
-  const res = await fetch(`${process.env.API_URL}/products/${id}`, {
-    cache: "no-store",
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token.value}`,
-    },
-    body: formData,
-  });
-
-  const data = await res.json();
-
-  if (data.status === "success") {
-    revalidatePath("/products");
-
-    return {
-      status: data.status,
-      message: "محصول مورد نظر ویرایش شد",
-    };
-  } else {
-    return {
-      status: data.status,
-      message: handleError(data.message),
-    };
+function parseObject(raw) {
+  try {
+    const value = JSON.parse(raw);
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
   }
 }
 
-export { createProduct, deleteProduct, editProduct };
+// Backend: PUT /products/:id (JSON). null clears brand / discount dates.
+async function editProduct(state, formData) {
+  const id = formData.get("id");
+  const title = formData.get("name")?.toString().trim();
+  const description = formData.get("description")?.toString().trim();
+  const price = Number(formData.get("price"));
+  const stock = Number(formData.get("quantity"));
+  const categoryId = Number(formData.get("category_id"));
+  const salePrice = Number(formData.get("sale_price")) || 0;
+
+  if (!id) return fail("شناسه محصول الزامی است");
+  if (!title) return fail("نام الزامی است");
+  if (!categoryId) return fail("دسته بندی الزامی است");
+  if (!(price > 0)) return fail("قیمت معتبر الزامی است");
+  if (!Number.isInteger(stock) || stock < 0) return fail("تعداد معتبر الزامی است");
+
+  const discount =
+    salePrice > 0 && salePrice < price ? Number((((price - salePrice) / price) * 100).toFixed(2)) : 0;
+
+  const body = {
+    title,
+    description,
+    price,
+    stock,
+    categoryId,
+    isActive: formData.get("status") === "1",
+    brand: formData.get("brand")?.toString().trim() || null,
+    discount,
+    discountStartDate: formData.get("discount_start")?.toString() || null,
+    discountEndDate: formData.get("discount_end")?.toString() || null,
+    attributes: parseObject(formData.get("attributes")),
+    badges: parseIds(formData.get("badges")),
+  };
+
+  try {
+    const data = await putFetch(`/products/${id}`, body);
+
+    if (data?.id) {
+      revalidatePath("/products");
+      revalidatePath(`/products/${id}`);
+      return { status: "success", message: "محصول مورد نظر ویرایش شد" };
+    }
+
+    return fail(handleError(data?.message) || "خطا در ویرایش محصول");
+  } catch {
+    return fail("ارتباط با سرور برقرار نشد");
+  }
+}
+
+function parseIds(raw) {
+  try {
+    const ids = JSON.parse(raw);
+    return Array.isArray(ids) ? ids.map(Number) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function setProductBadges(state, formData) {
+  const id = formData.get("id");
+  const badgeIds = parseIds(formData.get("badges"));
+
+  try {
+    const data = await putFetch(`/products/${id}/badges`, { badgeIds });
+
+    if (data?.id) {
+      revalidatePath("/products");
+      revalidatePath(`/products/${id}`);
+      return { status: "success", message: "نشان‌های محصول ذخیره شد" };
+    }
+
+    return { status: "error", message: handleError(data?.message) || "خطا در ذخیره نشان‌ها" };
+  } catch {
+    return { status: "error", message: "ارتباط با سرور برقرار نشد" };
+  }
+}
+
+export { createProduct, deleteProduct, editProduct, setProductBadges };
