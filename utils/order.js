@@ -1,4 +1,5 @@
-// Shared order constants + pure helpers (no React, safe to import anywhere).
+// Shared order constants + display helpers (no React, safe to import anywhere).
+// Filtering, searching and paging happen in the API: see utils/api/orders.js.
 
 // Backend OrderStatus values -> Persian label + Bootstrap badge classes.
 export const ORDER_STATUS = {
@@ -43,50 +44,10 @@ export function formatDate(value, { withTime = false } = {}) {
   }).format(date);
 }
 
-// ۰-۹ and ٠-٩ -> 0-9, so searching with a Persian keyboard works
-const normalizeDigits = (text) =>
-  text
-    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
-    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
-
-export function countByStatus(orders) {
-  return orders.reduce((acc, order) => {
-    acc[order.status] = (acc[order.status] ?? 0) + 1;
-    return acc;
-  }, {});
-}
-
-/**
- * Search rules:
- *  - up to 6 digits  -> exact order id
- *  - 7+ digits       -> phone number contains it
- *  - anything else   -> name / username / email contains it
- */
-export function filterOrders(orders, { status, payment, q }) {
-  const needle = normalizeDigits(q ?? "").trim().toLowerCase().replace(/^#/, "");
-
-  return orders.filter((order) => {
-    if (status && order.status !== status) return false;
-    if (payment && getPaymentKey(order) !== payment) return false;
-    if (!needle) return true;
-
-    if (/^\d+$/.test(needle)) {
-      if (needle.length <= 6) return String(order.id) === needle;
-      return [order.user?.phoneNumber, order.shippingAddress?.phone].some((phone) =>
-        phone?.replace(/\D/g, "").includes(needle),
-      );
-    }
-
-    return [
-      order.user?.name,
-      order.user?.familyName,
-      order.user?.username,
-      order.user?.email,
-      order.shippingAddress?.name,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase()
-      .includes(needle);
-  });
-}
+// Values must match the backend OrderSort enum.
+export const SORT_OPTIONS = [
+  { value: "newest", label: "جدیدترین" },
+  { value: "oldest", label: "قدیمی‌ترین" },
+  { value: "total_desc", label: "بیشترین مبلغ" },
+  { value: "total_asc", label: "کمترین مبلغ" },
+];

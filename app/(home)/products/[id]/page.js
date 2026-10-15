@@ -4,16 +4,22 @@ import { getBlurDataURL, numberFormat } from "@/utils/helper";
 import Image from "next/image";
 import ProductBadgesForm from "@/components/products/ProductBadgesForm";
 
+// The page still works without the badge options, so a failed request just yields an empty list.
+async function fetchBadges() {
+  try {
+    const list = await getFetch("/badges");
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
 export default async function ProductPage({ params }) {
       const { id } = await params;
 
   const product = await getFetch(`/products/${id}`);
 
-  let badges = [];
-  try {
-    const list = await getFetch("/badges");
-    if (Array.isArray(list)) badges = list;
-  } catch {}
+  const badges = await fetchBadges();
   
 
   return (

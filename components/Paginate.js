@@ -1,57 +1,79 @@
-// "use client";
+"use client";
 
-// import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-// export default function Paginate({ links }) {
-//   const pathname = usePathname();
-//   const router = useRouter();
-//   const searchParams = useSearchParams();
+// [1, 2, null, 9, 10] - null is rendered as an ellipsis. Always shows first, last and current +/- radius.
+function pageWindow(current, total, radius = 2) {
+  const pages = [];
+  for (let p = 1; p <= total; p++) {
+    if (p === 1 || p === total || Math.abs(p - current) <= radius) pages.push(p);
+  }
+  return pages.flatMap((p, i) => (i > 0 && p - pages[i - 1] > 1 ? [null, p] : [p]));
+}
 
-//   function handlePage(page) {
-//     const params = new URLSearchParams(searchParams);
-//     params.set("page", page);
-//     router.replace(`${pathname}?${params.toString()}`);
-//   }
-
-//   return (
-//     <nav className="d-flex justify-content-center mt-5">
-//       <ul className="pagination">
-//         {links?.slice(1, -1).map((link, index) => (
-//           <li key={index} className={link.active ? "page-item active" : "page-item"}>
-//             <button onClick={() => handlePage(link.label)} className="page-link">
-//               {link.label}
-//             </button>
-//           </li>
-//         ))}
-//       </ul>
-//     </nav>
-//   );
-// }
 /**
- * Client-side pagination for lists the API returns unpaginated.
- * `links` has the same shape as the Laravel `meta.links` array that <Paginate /> expects
- * ([prev, ...pages, next] - the component drops the first and last item), so that component is reused unchanged.
+ * Pass `meta` ({ page, totalPages }, what the NestJS API returns) for previous/next + a page window.
+ * `links` (Laravel-style) is still supported so tables that have not been migrated keep working.
  */
-export function paginateList(items, page, perPage = 15) {
-  const totalPages = Math.max(1, Math.ceil(items.length / perPage));
-  const current = Math.min(Math.max(Number(page) || 1, 1), totalPages);
+export default function Paginate({ meta, links }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const links =
-    totalPages > 1
-      ? [
-          { label: "prev" },
-          ...Array.from({ length: totalPages }, (_, i) => ({
-            label: String(i + 1),
-            active: i + 1 === current,
-          })),
-          { label: "next" },
-        ]
-      : [];
+  function goTo(page) {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", page);
+    router.replace(`${pathname}?${params.toString()}`);
+  }
 
-  return {
-    items: items.slice((current - 1) * perPage, current * perPage),
-    links,
-    page: current,
-    totalPages,
-  };
+  if (!meta) {
+    return (
+      <nav className="d-flex justify-content-center mt-5">
+        <ul className="pagination">
+          {links?.slice(1, -1).map((link, index) => (
+            <li key={index} className={link.active ? "page-item active" : "page-item"}>
+              <button onClick={() => goTo(link.label)} className="page-link">
+                {link.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    );
+  }
+
+  const { page, totalPages } = meta;
+  if (totalPages <= 1) return null;
+
+  return (
+    <nav className="d-flex justify-content-center mt-5">
+      <ul className="pagination">
+        <li className={page <= 1 ? "page-item disabled" : "page-item"}>
+          <button className="page-link" disabled={page <= 1} onClick={() => goTo(page - 1)}>
+            قبلی
+          </button>
+        </li>
+
+        {pageWindow(page, totalPages).map((p, index) =>
+          p === null ? (
+            <li key={`gap-${index}`} className="page-item disabled">
+              <span className="page-link">…</span>
+            </li>
+          ) : (
+            <li key={p} className={p === page ? "page-item active" : "page-item"}>
+              <button className="page-link" onClick={() => goTo(p)}>
+                {p}
+              </button>
+            </li>
+          ),
+        )}
+
+        <li className={page >= totalPages ? "page-item disabled" : "page-item"}>
+          <button className="page-link" disabled={page >= totalPages} onClick={() => goTo(page + 1)}>
+            بعدی
+          </button>
+        </li>
+      </ul>
+    </nav>
+  );
 }

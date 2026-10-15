@@ -2,9 +2,15 @@
 
 import { useState } from "react";
 
-export default function ProductExtraAttributes() {
+// {color: "white"} -> [{key: "color", value: "white"}]; always at least one empty row
+const toRows = (attributes) => {
+  const rows = Object.entries(attributes ?? {}).map(([key, value]) => ({ key, value: String(value) }));
+  return rows.length > 0 ? rows : [{ key: "", value: "" }];
+};
+
+export default function ProductExtraAttributes({ defaultBrand = "", defaultAttributes = null }) {
   // State to manage dynamic key-value rows
-  const [attributes, setAttributes] = useState([{ key: "", value: "" }]);
+  const [attributes, setAttributes] = useState(() => toRows(defaultAttributes));
 
   const addAttribute = () => {
     setAttributes([...attributes, { key: "", value: "" }]);
@@ -31,21 +37,12 @@ export default function ProductExtraAttributes() {
 
   return (
     <>
-      {/* --- Brand & Badge Section --- */}
+      {/* --- Brand Section (badges are chosen with <BadgeSelector /> in the form) --- */}
       <div className="col-md-3">
         <label className="form-label">برند (Brand)</label>
-        <input name="brand" type="text" className="form-control" placeholder="مثال: پارس شهاب" />
+        <input name="brand" type="text" defaultValue={defaultBrand ?? ""} className="form-control" placeholder="مثال: پارس شهاب" />
       </div>
 
-      <div className="col-md-3">
-        <label className="form-label">نشان ویژه (Badge)</label>
-        <select name="badge" defaultValue="" className="form-select">
-          <option value="">بدون نشان</option>
-          <option value="new">جدید (New)</option>
-          <option value="sale">حراج (Sale)</option>
-          <option value="hot">پرفروش (Hot)</option>
-        </select>
-      </div>
 
       {/* --- Dynamic Attributes Builder Section --- */}
       <div className="col-md-12 mt-4">

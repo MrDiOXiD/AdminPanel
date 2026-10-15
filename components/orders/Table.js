@@ -1,27 +1,17 @@
 import Link from "next/link";
-import { getFetch } from "@/utils/fetch";
+import { getOrders } from "@/utils/api/orders";
 import { handleError, numberFormat } from "@/utils/helper";
-import {
-  PAYMENT_METHOD,
-  countByStatus,
-  customerName,
-  filterOrders,
-  formatDate,
-  itemsCount,
-} from "@/utils/order";
-import { paginateList } from "@/utils/paginate";
+import { PAYMENT_METHOD, customerName, formatDate, itemsCount } from "@/utils/order";
 import Paginate from "../Paginate";
 import { OrderStatusBadge, PaymentBadge } from "./OrderBadges";
 import StatusChips from "./StatusChips";
 
-const PER_PAGE = 15;
-
 export default async function Table({ params }) {
   const query = new URLSearchParams(params);
-  const data = await getFetch("/orders");
+  const data = await getOrders(query);
 
-  // 401 / 403 / 500 arrive as an object, not an array
-  if (!Array.isArray(data)) {
+  // 400 / 401 / 403 / 500 arrive as { statusCode, message }, not as { items, meta }
+  if (!Array.isArray(data?.items)) {
     return (
       <div className="alert alert-danger">
         دریافت سفارشات با خطا مواجه شد{data?.message ? `: ${handleError(data.message)}` : ""}
@@ -29,18 +19,13 @@ export default async function Table({ params }) {
     );
   }
 
-  const status = query.get("status") ?? "";
-  const payment = query.get("payment") ?? "";
-  const q = query.get("q") ?? "";
-
-  const newestFirst = [...data].sort((a, b) => new Date(b.orderAt) - new Date(a.orderAt));
-  const filtered = filterOrders(newestFirst, { status, payment, q });
-  const { items, links } = paginateList(filtered, query.get("page"), PER_PAGE);
-  const counts = countByStatus(data);
+  const { items, meta } = data;
+  const statusCounts = meta.statusCounts ?? {};
+  const totalAll = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
 
   return (
     <>
-      <StatusChips counts={counts} total={data.length} status={status} query={query} />
+      <StatusChips counts={statusCounts} total={totalAll} status={query.get("status") ?? ""} query={query} />
 
       <div className="table-responsive">
         <table className="table align-middle">
@@ -102,9 +87,9 @@ export default async function Table({ params }) {
         </table>
       </div>
 
-      <div className="text-muted small">{filtered.length} سفارش</div>
+      <div className="text-muted small">{meta.total} سفارش</div>
 
-      {links.length > 0 ? <Paginate links={links} /> : null}
+      <Paginate meta={meta} />
     </>
   );
 }

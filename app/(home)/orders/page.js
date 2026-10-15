@@ -17,6 +17,7 @@ export default async function OrdersPage({ searchParams }) {
         q={params.get("q") ?? ""}
         status={params.get("status") ?? ""}
         payment={params.get("payment") ?? ""}
+        sort={params.get("sort") ?? ""}
       />
 
       <Suspense key={params.toString()} fallback={<Loading />}>
