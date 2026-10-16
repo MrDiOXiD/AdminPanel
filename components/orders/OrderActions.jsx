@@ -37,7 +37,7 @@ const confirmFirst = (message) => (event) => {
   if (!window.confirm(message)) event.preventDefault();
 };
 
-export default function OrderActions({ id, allowedActions = [], paid }) {
+export default function OrderActions({ id, allowedActions = [], paid, deliveryType }) {
   const [advanceState, advanceAction] = useActionState(updateOrderStatus, {});
   const [cancelState, cancelAction] = useActionState(cancelOrder, {});
   useToast(advanceState);
@@ -69,9 +69,25 @@ export default function OrderActions({ id, allowedActions = [], paid }) {
         }
 
         return (
-          <form key={action} action={advanceAction} onSubmit={confirmFirst(config.confirm)}>
+          <form
+            key={action}
+            action={advanceAction}
+            onSubmit={confirmFirst(config.confirm)}
+            className="d-flex gap-2 align-items-center"
+          >
             <input type="hidden" name="id" value={id} />
             <input type="hidden" name="status" value={config.status} />
+            {action === "ship" && deliveryType !== "pickup" ? (
+              <input
+                name="trackingCode"
+                type="text"
+                dir="ltr"
+                maxLength={50}
+                className="form-control"
+                style={{ width: 220 }}
+                placeholder="کد رهگیری (اختیاری)"
+              />
+            ) : null}
             <SubmitButton title={config.title} style={config.style} />
           </form>
         );

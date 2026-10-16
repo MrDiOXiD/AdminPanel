@@ -5,6 +5,7 @@ import { OrderStatusBadge, PaymentBadge } from "@/components/orders/OrderBadges"
 import { getOrder } from "@/utils/api/orders";
 import { handleError, numberFormat } from "@/utils/helper";
 import { PAYMENT_METHOD, customerName, formatDate } from "@/utils/order";
+import { isPickup, typeLabel } from "@/utils/delivery";
 
 function InfoRow({ label, children }) {
   return (
@@ -40,6 +41,7 @@ export default async function OrderPage({ params }) {
 
   const address = order.shippingAddress;
   const lines = order.products ?? [];
+  const pickup = isPickup(order.deliveryMethod?.type); // collected in person: no address
 
   return (
     <>
@@ -69,7 +71,7 @@ export default async function OrderPage({ params }) {
         </div>
 
         <div className="col-md-4">
-          <Card title="آدرس ارسال">
+          <Card title={pickup ? "تحویل حضوری" : "آدرس ارسال"}>
             {address ? (
               <>
                 <InfoRow label="گیرنده">{address.name}</InfoRow>
@@ -81,18 +83,24 @@ export default async function OrderPage({ params }) {
                 <InfoRow label="آدرس">{address.address}</InfoRow>
               </>
             ) : (
-              <p className="text-muted my-3">برای این سفارش آدرسی ثبت نشده است.</p>
+              <p className="text-muted my-3">
+                {pickup ? "این سفارش حضوری تحویل داده می‌شود و آدرس ندارد." : "برای این سفارش آدرسی ثبت نشده است."}
+              </p>
             )}
           </Card>
         </div>
 
         <div className="col-md-4">
           <Card title="پرداخت و ارسال">
+            <InfoRow label="روش ارسال">
+              {order.deliveryMethod ? `${order.deliveryMethod.label} (${typeLabel(order.deliveryMethod.type)})` : null}
+            </InfoRow>
             <InfoRow label="روش پرداخت">{PAYMENT_METHOD[order.paymentMethod] ?? order.paymentMethod}</InfoRow>
             <InfoRow label="تاریخ ثبت">{formatDate(order.orderAt, { withTime: true })}</InfoRow>
             <InfoRow label="تاریخ پرداخت">{order.paidAt ? formatDate(order.paidAt, { withTime: true }) : null}</InfoRow>
             <InfoRow label="تحویل درخواستی">{formatDate(order.requestedDeliveryDate)}</InfoRow>
             <InfoRow label="تاریخ ارسال">{order.shippedAt ? formatDate(order.shippedAt, { withTime: true }) : null}</InfoRow>
+            <InfoRow label="کد رهگیری">{order.trackingCode ? <span dir="ltr">{order.trackingCode}</span> : null}</InfoRow>
             <InfoRow label="تاریخ تحویل">{order.deliveredAt ? formatDate(order.deliveredAt, { withTime: true }) : null}</InfoRow>
             {order.updatedBy ? <InfoRow label="آخرین تغییر توسط">{customerName(order.updatedBy)}</InfoRow> : null}
           </Card>
@@ -153,7 +161,12 @@ export default async function OrderPage({ params }) {
           <div className="card">
             <div className="card-header fw-bold">عملیات</div>
             <div className="card-body">
-              <OrderActions id={order.id} allowedActions={order.allowedActions ?? []} paid={Boolean(order.paidAt)} />
+              <OrderActions
+                id={order.id}
+                allowedActions={order.allowedActions ?? []}
+                paid={Boolean(order.paidAt)}
+                deliveryType={order.deliveryMethod?.type}
+              />
             </div>
           </div>
         </div>

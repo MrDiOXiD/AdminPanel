@@ -83,6 +83,15 @@ export default function Sidebar() {
               تخفیف ها
             </Link>
           </li>
+          <li className="nav-item">
+            <Link
+              className={pathname.includes("/delivery-methods") ? "nav-link active" : "nav-link"}
+              href="/delivery-methods"
+            >
+              <i className="bi bi-truck me-2"></i>
+              روش های ارسال
+            </Link>
+          </li>
         </ul>
       </div>
     </nav>

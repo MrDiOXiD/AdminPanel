@@ -15,12 +15,12 @@ async function fetchBadges() {
 }
 
 export default async function ProductPage({ params }) {
-      const { id } = await params;
+  const { id } = await params;
 
   const product = await getFetch(`/products/${id}`);
 
   const badges = await fetchBadges();
-  
+
 
   return (
     <>
@@ -118,22 +118,19 @@ export default async function ProductPage({ params }) {
         <ProductBadgesForm productId={product.id} badges={badges} selected={product.badges ?? []} />
 
         <div className="col-md-12">
-          {product.gallery > 0
-            ? product.images.map((item) => (
-                <Image
-                src={product.productImage}
-                  className="ms-3"
-                  key={item.id}
-                  placeholder="blur"
-                  blurDataURL={getBlurDataURL()}
-                  width={200}
-                  height={130}
-                  alt="product-image"
-                />
-              ))
-            : null}
+          {(product.gallery ?? []).map((image) => (
+            <Image
+              key={image.public_id}
+              src={image.secure_url}
+              className="ms-3"
+              placeholder="blur"
+              blurDataURL={getBlurDataURL()}
+              width={200}
+              height={130}
+              alt="product-gallery-image"
+            />
+          ))}
         </div>
-
         <DeleteProduct id={product.id} />
       </div>
     </>

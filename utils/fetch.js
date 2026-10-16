@@ -2,6 +2,29 @@ import { cookies } from "next/headers";
 import { json } from "node:stream/consumers";
 
 
+// Success is decided by the HTTP status, not the body: NestJS answers with an empty body
+// when a handler returns void, and res.json() would throw on that.
+const apiRequest = async (method, url, body) => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+  if (!token) throw new Error("Authorization token is required for this request.");
+
+  const res = await fetch(`${process.env.API_URL}${url}`, {
+    cache: "no-store",
+    method,
+    headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const text = await res.text();
+  let data = null;
+  if (text) {
+    try { data = JSON.parse(text); } catch { data = text; }
+  }
+  return { ok: res.ok, status: res.status, data };
+};
+
+
 const getFetch = async (url) => {
 
   const cookieStore = await cookies();
@@ -92,4 +115,4 @@ const token = cookieStore.get("token");
   return await res.json();
 };
 
-export { getFetch, postFetch, postFetchUnauth, deleteFetch, putFetch };
+export { getFetch, postFetch, postFetchUnauth, deleteFetch, putFetch, apiRequest };

@@ -49,9 +49,14 @@ export async function updateOrderStatus(state, formData) {
   if (!id) return fail("شناسه سفارش الزامی است");
   if (!ADVANCE_TO.includes(status)) return fail("وضعیت نامعتبر است");
 
+  // Optional carrier tracking code (کد رهگیری): only meaningful when shipping
+  const trackingCode = formData.get("trackingCode")?.toString().trim() ?? "";
+  if (trackingCode.length > 50) return fail("کد رهگیری حداکثر ۵۰ کاراکتر است");
+  const body = status === "shipped" && trackingCode ? { status, trackingCode } : { status };
+
   return submit(
     `/orders/${id}`,
-    { status },
+    body,
     id,
     status === "shipped" ? "سفارش به وضعیت «ارسال شده» تغییر کرد" : "سفارش به وضعیت «تحویل داده شده» تغییر کرد",
   );
